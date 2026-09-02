@@ -2,8 +2,13 @@ import { Switch } from "./components/ui/switch";
 
 const App = () => {
   return (
-    <main className="flex h-screen w-full items-center justify-center">
-      <Switch />
+    <main className="flex h-screen w-full flex-col items-center justify-center">
+      <div className="flex h-fit w-fit flex-col gap-5">
+        <Switch variant="sm" />
+        <Switch />
+        <Switch variant="md" />
+        <Switch variant="lg" />
+      </div>
     </main>
   );
 };

@@ -3,13 +3,13 @@ import { cva } from "class-variance-authority";
 import { useState } from "react";
 export type SIZE_VARIANTS = "sm" | "md" | "lg" | "default";
 
-const switchVariants = cva("flex items-center rounded-2xl transition-colors", {
+const switchVariants = cva("flex items-center rounded-full transition-colors", {
   variants: {
     variant: {
-      sm: "h-4.5 w-10 px-0.25",
-      md: "h-9 w-20",
-      lg: "h-12 w-32",
-      default: "h-7 w-16 px-0.5",
+      sm: "h-5 w-11 px-0.5",
+      md: "h-9 w-20 px-0.5",
+      lg: "h-12 w-28 px-0.75",
+      default: "h-7 w-15 px-0.5",
     },
     checked: {
       true: "bg-green-400",
@@ -26,18 +26,18 @@ const switchThumbVariants = cva(
   {
     variants: {
       variant: {
-        sm: "h-4 w-6 [--padding:0.0625rem] [--switch-width:2.5rem] [--thumb-width:1.5rem]",
-        md: "",
-        lg: "",
+        sm: "h-4 w-6 [--padding:0.125rem] [--scale-x:160%] [--scale-y:170%] [--switch-width:2.75rem] [--thumb-width:1.5rem]",
+        md: "h-8 w-12 [--padding:0.125rem] [--scale-x:150%] [--scale-y:170%] [--switch-width:5rem] [--thumb-width:3rem]",
+        lg: "h-10.5 w-17 [--padding:0.1875rem] [--scale-x:150%] [--scale-y:170%] [--switch-width:7rem] [--thumb-width:4.25rem]",
         default:
-          "h-6 w-9 [--padding:0.25rem] [--switch-width:4rem] [--thumb-width:2rem]",
+          "h-6 w-9 [--padding:0.125rem] [--scale-x:150%] [--scale-y:160%] [--switch-width:3.75rem] [--thumb-width:2.25rem]",
       },
       checked: {
         true: "translate-x-[calc(var(--switch-width)-var(--thumb-width)-2*var(--padding))]",
         false: "translate-x-0",
       },
       held: {
-        true: "scale-x-150 scale-y-170 border-[0.125px] border-gray-200 opacity-45 drop-shadow-xl focus:outline-none",
+        true: "scale-x-[var(--scale-x)] scale-y-[var(--scale-y)] border-[0.125px] border-gray-200 opacity-45 drop-shadow-xl focus:outline-none",
         false: "scale-100",
       },
     },
@@ -49,7 +49,7 @@ const switchThumbVariants = cva(
         held: true,
         checked: true,
         className:
-          "translate-x-[calc(var(--switch-width)-var(--thumb-width)-4*var(--padding))]",
+          "translate-x-[calc(var(--switch-width)-var(--thumb-width)-3*var(--padding))]",
       },
       {
         held: true,
@@ -64,12 +64,14 @@ interface SwitchProps {
   variant?: SIZE_VARIANTS;
   defaultChecked?: boolean;
   checked?: boolean;
+  className?: string;
   onCheckedChange?: (checked?: boolean) => void;
 }
 
 export const Switch = ({
   variant = "default",
   defaultChecked,
+  className,
   checked,
   onCheckedChange,
 }: SwitchProps) => {
@@ -96,7 +98,10 @@ export const Switch = ({
       onMouseDown={() => setIsHeldDown(true)}
       onMouseUp={resetHeld}
       onClick={handleCheckedChange}
-      className={cn(switchVariants({ variant, checked: derivedChecked }))}
+      className={cn(
+        switchVariants({ variant, checked: derivedChecked }),
+        className,
+      )}
     >
       <button
         id="thumb"
