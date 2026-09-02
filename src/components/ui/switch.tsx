@@ -1,6 +1,6 @@
 import { cn } from "@/lib/cn";
 import { cva } from "class-variance-authority";
-import { useRef, useState } from "react";
+import { useState } from "react";
 export type SIZE_VARIANTS = "sm" | "md" | "lg" | "default";
 
 const switchContainerVariants = cva(
@@ -38,10 +38,28 @@ const switchThumbVariants = cva(
         true: "translate-x-[calc(4rem-2.25rem-2*0.125rem)]",
         false: "translate-x-0",
       },
+      held: {
+        true: "scale-x-150 scale-y-170 border-[0.125px] border-gray-200 opacity-45 drop-shadow-xl focus:outline-none",
+        false: "scale-100",
+      },
     },
     defaultVariants: {
       variant: "default",
     },
+    compoundVariants: [
+      {
+        variant: "default",
+        held: true,
+        checked: true,
+        className: "translate-x-[calc(4rem-2rem-4*0.125rem)]",
+      },
+      {
+        variant: "default",
+        held: true,
+        checked: false,
+        className: "translate-x-0.125",
+      },
+    ],
   },
 );
 
@@ -61,10 +79,6 @@ export const Switch = ({
   const [isToggled, setIsToggled] = useState<boolean>(defaultChecked || false);
   const [isHeldDown, setIsHeldDown] = useState(false);
 
-  // TODO: calculate spacings for each size based on its widths
-  const containerRef = useRef(null);
-  const thumbRef = useRef(null);
-
   const isControlled = checked !== undefined;
   const derivedChecked = isControlled ? checked : isToggled;
 
@@ -80,9 +94,7 @@ export const Switch = ({
 
   return (
     <div
-      ref={containerRef}
       role="button"
-      id="thumb"
       onMouseLeave={resetHeld}
       onMouseDown={() => setIsHeldDown(true)}
       onMouseUp={resetHeld}
@@ -93,18 +105,13 @@ export const Switch = ({
     >
       <button
         id="thumb"
-        ref={thumbRef}
         onClick={handleCheckedChange}
         className={cn(
-          switchThumbVariants({ variant, checked: derivedChecked }),
-          isHeldDown
-            ? [
-                "scale-x-150 scale-y-170 border-[0.125px] border-gray-200 opacity-45 drop-shadow-xl focus:outline-none",
-                derivedChecked
-                  ? "translate-x-[calc(4rem-2rem-4*0.125rem)]"
-                  : "translate-x-0.125",
-              ]
-            : "scale-100",
+          switchThumbVariants({
+            variant,
+            checked: derivedChecked,
+            held: isHeldDown,
+          }),
         )}
       />
     </div>
