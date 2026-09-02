@@ -1,50 +1,108 @@
 import { cn } from "@/lib/cn";
-import { useState } from "react";
+import { cva } from "class-variance-authority";
+import { useRef, useState } from "react";
+export type SIZE_VARIANTS = "sm" | "md" | "lg" | "default";
 
-const variants = {
-  sm: "",
-  md: "",
-  lg: "",
-  default: "",
-};
+const switchContainerVariants = cva(
+  "flex items-center rounded-2xl transition-colors",
+  {
+    variants: {
+      variant: {
+        sm: "h-4.5 w-10 px-0.25",
+        md: "h-9 w-20",
+        lg: "h-12 w-32",
+        default: "h-7 w-16 px-0.5",
+      },
+      checked: {
+        true: "bg-green-400",
+        false: "bg-gray-200",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+    },
+  },
+);
+
+const switchThumbVariants = cva(
+  "rounded-full bg-white transition-all ease-out focus-visible:border-none focus-visible:outline-1",
+  {
+    variants: {
+      variant: {
+        sm: "h-4 w-6",
+        md: "",
+        lg: "",
+        default: "h-6 w-9",
+      },
+      checked: {
+        true: "translate-x-[calc(4rem-2.25rem-2*0.125rem)]",
+        false: "translate-x-0",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+    },
+  },
+);
 
 interface SwitchProps {
-  variant: keyof typeof variants;
+  variant?: SIZE_VARIANTS;
+  defaultChecked?: boolean;
+  checked?: boolean;
+  onCheckedChange?: (checked?: boolean) => void;
 }
 
-export const Switch = ({ variant = "default" }: SwitchProps) => {
-  const [isToggled, setIsToggled] = useState(false);
-  const [isHeld, setIsHeld] = useState(false);
+export const Switch = ({
+  variant = "default",
+  defaultChecked,
+  checked,
+  onCheckedChange,
+}: SwitchProps) => {
+  const [isToggled, setIsToggled] = useState<boolean>(defaultChecked || false);
+  const [isHeldDown, setIsHeldDown] = useState(false);
 
-  const resetIsHeld = () => {
-    setIsHeld(false);
+  // TODO: calculate spacings for each size based on its widths
+  const containerRef = useRef(null);
+  const thumbRef = useRef(null);
+
+  const isControlled = checked !== undefined;
+  const derivedChecked = isControlled ? checked : isToggled;
+
+  const handleCheckedChange = () => {
+    isControlled
+      ? onCheckedChange?.(!derivedChecked)
+      : setIsToggled(!derivedChecked);
+  };
+
+  const resetHeld = () => {
+    setIsHeldDown(false);
   };
 
   return (
     <div
+      ref={containerRef}
       role="button"
-      aria-checked={isToggled}
-      onMouseLeave={resetIsHeld}
-      onMouseDown={() => setIsHeld(true)}
-      onMouseUp={resetIsHeld}
-      onClick={() => setIsToggled(!isToggled)}
+      id="thumb"
+      onMouseLeave={resetHeld}
+      onMouseDown={() => setIsHeldDown(true)}
+      onMouseUp={resetHeld}
+      onClick={handleCheckedChange}
       className={cn(
-        "w-16 h-6 bg-gray-200 rounded-2xl flex items-center px-0.5",
-      )}>
-      <div
-        role="button"
-        onClick={() => setIsToggled(!isToggled)}
+        switchContainerVariants({ variant, checked: derivedChecked }),
+      )}
+    >
+      <button
+        id="thumb"
+        ref={thumbRef}
+        onClick={handleCheckedChange}
         className={cn(
-          "w-8 h-5 rounded-full transition-all ease-out",
-          isToggled
-            ? "bg-purple-500 translate-x-[calc(4rem-2rem-2*0.125rem)]"
-            : "bg-gray-300 translate-x-0",
-          isHeld
+          switchThumbVariants({ variant, checked: derivedChecked }),
+          isHeldDown
             ? [
-                "scale-180 drop-shadow-md backdrop-blur-[1000px] opacity-45",
-                isToggled
+                "scale-x-150 scale-y-170 border-[0.125px] border-gray-200 opacity-45 drop-shadow-xl focus:outline-none",
+                derivedChecked
                   ? "translate-x-[calc(4rem-2rem-4*0.125rem)]"
-                  : "translate-x-1",
+                  : "translate-x-0.125",
               ]
             : "scale-100",
         )}
