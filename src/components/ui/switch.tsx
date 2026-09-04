@@ -69,7 +69,6 @@ export const Switch = ({
 
   const paddingOffset = useRef<number | null>(null);
 
-  // refs of the container(switch) and button(thumb)
   const switchRef = useRef<HTMLDivElement | null>(null);
   const thumbRef = useRef<HTMLButtonElement | null>(null);
 
@@ -77,11 +76,12 @@ export const Switch = ({
   const isControlled = checked !== undefined;
   const derivedChecked = isControlled ? checked : isToggled;
 
+  // toggle on click of the switch(not the thumb)
   const handleCheckedChange = () => {
     if (isControlled) {
       onCheckedChange?.(!derivedChecked);
     }
-    const [min, _, max] = getClamps();
+    const [min, max] = getClamps();
     if (derivedChecked) {
       setDragPosX(min);
     } else {
@@ -90,16 +90,15 @@ export const Switch = ({
     setIsToggled(!derivedChecked);
   };
 
-  //   this is done and working as expected
   const getClamps = () => {
     const swichEl = switchRef.current;
     const thumbEl = thumbRef.current;
     if (!swichEl || !thumbEl) return [0, 0];
+
     const paddingOffset = parseFloat(getComputedStyle(swichEl).paddingLeft);
-    const minX = 0;
-    const midX = swichEl.clientWidth / 2;
-    const maxX = swichEl.clientWidth - thumbEl.clientWidth - 2 * paddingOffset;
-    return [minX, midX, maxX];
+    const minX = 0; // no translateX
+    const maxX = swichEl.clientWidth - thumbEl.clientWidth - 2 * paddingOffset; // max left(edge of thumb) possible translateX
+    return [minX, maxX];
   };
 
   const getThumbLeft = () => {
@@ -112,6 +111,7 @@ export const Switch = ({
     const swichEl = switchRef.current;
     const thumbEl = thumbRef.current;
     if (!swichEl || !thumbEl) return;
+
     setIsHeldDown(true);
     e.currentTarget.setPointerCapture(e.pointerId);
     const switchRect = swichEl.getBoundingClientRect();
@@ -125,14 +125,14 @@ export const Switch = ({
     }
   };
 
+  // posX is always w.r.t the container(switch) and not viewport
   const handlePointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
     const thumbEl = thumbRef.current;
     if (!thumbEl || !isHeldDown || !switchRect) return;
-    const [min, _, max] = getClamps();
-    console.log(min, _, max);
-    const localX = e.clientX - switchRect.left - getThumbLeft();
-    const clampedX = Math.max(min, Math.min(localX, max));
-    console.log("prev dragPosX: ", dragPosX);
+
+    const [min, max] = getClamps();
+    const localX = e.clientX - switchRect.left - getThumbLeft(); // x position w.r.t to the switch(container)
+    const clampedX = Math.max(min, Math.min(localX, max)); // either 0 or max or somewhere in between
     setDragPosX(clampedX);
   };
 
@@ -147,32 +147,30 @@ export const Switch = ({
   };
 
   return (
-    <>
-      <div
-        ref={switchRef}
-        role="button"
-        onClick={handleCheckedChange}
+    <div
+      ref={switchRef}
+      role="button"
+      onClick={handleCheckedChange}
+      className={cn(
+        switchVariants({ variant, checked: derivedChecked }),
+        className,
+      )}
+    >
+      <button
+        ref={thumbRef}
+        onPointerDown={handlePointerDown} // click/touch
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp} // release click/touch
+        onPointerCancel={handlePointerUp} // unexpected interruptions or cancellations
+        id="thumb"
         className={cn(
-          switchVariants({ variant, checked: derivedChecked }),
-          className,
+          switchThumbVariants({
+            variant,
+            held: isHeldDown,
+          }),
         )}
-      >
-        <button
-          ref={thumbRef}
-          onPointerDown={handlePointerDown} // click/touch
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp} // release click/touch
-          onPointerCancel={handlePointerUp} // unexpected interruptions or cancellations
-          id="thumb"
-          className={cn(
-            switchThumbVariants({
-              variant,
-              held: isHeldDown,
-            }),
-          )}
-          style={{ transform: `translateX(${dragPosX}px)` }}
-        />
-      </div>
-    </>
+        style={{ transform: `translateX(${dragPosX}px)` }}
+      />
+    </div>
   );
 };
