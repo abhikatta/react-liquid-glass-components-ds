@@ -32,10 +32,6 @@ const switchThumbVariants = cva(
         default:
           "h-6 w-9 [--padding:0.125rem] [--scale-x:150%] [--scale-y:160%] [--switch-width:3.75rem] [--thumb-width:2.25rem]",
       },
-      checked: {
-        true: "",
-        false: "",
-      },
       held: {
         true: "scale-x-[var(--scale-x)] scale-y-[var(--scale-y)] opacity-45 drop-shadow-xl focus:outline-none",
         false: "scale-100",
@@ -44,19 +40,6 @@ const switchThumbVariants = cva(
     defaultVariants: {
       variant: "default",
     },
-    // compoundVariants: [
-    //   {
-    //     held: true,
-    //     checked: true,
-    //     className:
-    //       "translate-x-[calc(var(--switch-width)-var(--thumb-width)-3*var(--padding))]",
-    //   },
-    //   {
-    //     held: true,
-    //     checked: false,
-    //     className: "translate-x-[var(--padding)]",
-    //   },
-    // ],
   },
 );
 
@@ -81,8 +64,6 @@ export const Switch = ({
   const [isHeldDown, setIsHeldDown] = useState(false);
   // click and hold and moving the thumb with the pointer updates this
   const [dragPosX, setDragPosX] = useState(0);
-  // where the click and hold and move of thumb started from
-  const [dragStartPosX, setDragStartPosX] = useState(0);
   // position of switch
   const [switchRect, setSwitchRect] = useState<DOMRect | null>(null);
 
@@ -137,7 +118,6 @@ export const Switch = ({
     setSwitchRect(switchRect);
     const newPaddingOffset = parseFloat(getComputedStyle(swichEl).paddingLeft);
     paddingOffset.current = newPaddingOffset;
-    setDragStartPosX(e.clientX - switchRect.left);
     if (derivedChecked) {
       setDragPosX(getThumbLeft() - newPaddingOffset);
     } else {
@@ -187,11 +167,9 @@ export const Switch = ({
           className={cn(
             switchThumbVariants({
               variant,
-              checked: derivedChecked,
               held: isHeldDown,
             }),
           )}
-
           style={{ transform: `translateX(${dragPosX}px)` }}
         />
       </div>
