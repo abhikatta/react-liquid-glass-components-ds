@@ -1,7 +1,7 @@
 import { cn } from "@/lib/cn";
 import { cva } from "class-variance-authority";
-import { useState } from "react";
-export type SIZE_VARIANTS = "sm" | "md" | "lg" | "default";
+import { memo, useEffect, useRef, useState } from "react";
+import type { SIZE_VARIANTS } from "./constants";
 
 const switchVariants = cva("flex items-center rounded-full transition-colors", {
   variants: {
@@ -22,7 +22,7 @@ const switchVariants = cva("flex items-center rounded-full transition-colors", {
 });
 
 const switchThumbVariants = cva(
-  "rounded-full bg-white transition-all ease-out focus-visible:border-none focus-visible:outline-1",
+  "rounded-full bg-white transition-all duration-300 ease-out focus-visible:border-none focus-visible:outline-1",
   {
     variants: {
       variant: {
@@ -32,31 +32,14 @@ const switchThumbVariants = cva(
         default:
           "h-6 w-9 [--padding:0.125rem] [--scale-x:150%] [--scale-y:160%] [--switch-width:3.75rem] [--thumb-width:2.25rem]",
       },
-      checked: {
-        true: "translate-x-[calc(var(--switch-width)-var(--thumb-width)-2*var(--padding))]",
-        false: "translate-x-0",
-      },
       held: {
-        true: "scale-x-[var(--scale-x)] scale-y-[var(--scale-y)] border-[0.125px] border-gray-200 opacity-45 drop-shadow-xl focus:outline-none",
+        true: "scale-x-[var(--scale-x)] scale-y-[var(--scale-y)] opacity-45 drop-shadow-xl focus:outline-none",
         false: "scale-100",
       },
     },
     defaultVariants: {
       variant: "default",
     },
-    compoundVariants: [
-      {
-        held: true,
-        checked: true,
-        className:
-          "translate-x-[calc(var(--switch-width)-var(--thumb-width)-3*var(--padding))]",
-      },
-      {
-        held: true,
-        checked: false,
-        className: "translate-x-[var(--padding)]",
-      },
-    ],
   },
 );
 
@@ -65,55 +48,165 @@ interface SwitchProps {
   defaultChecked?: boolean;
   checked?: boolean;
   className?: string;
-  onCheckedChange?: (checked?: boolean) => void;
+  onCheckedChange?: (checked: boolean) => void;
 }
 
-export const Switch = ({
-  variant = "default",
-  defaultChecked,
-  className,
-  checked,
-  onCheckedChange,
-}: SwitchProps) => {
-  const [isToggled, setIsToggled] = useState<boolean>(defaultChecked || false);
-  const [isHeldDown, setIsHeldDown] = useState(false);
+export const Switch = memo(
+  ({
+    variant = "default",
+    defaultChecked,
+    className,
+    checked,
+    onCheckedChange,
+  }: SwitchProps) => {
+    // final state of the switch's thumb. false means its on left, true is right (respecting padding)
+    const [isToggled, setIsToggled] = useState<boolean>(
+      defaultChecked ?? false,
+    );
+    // click and hold means true, release means false
+    const [isHeldDown, setIsHeldDown] = useState(false);
+    // click and hold and moving the thumb with the pointer updates this
+    const [dragPosX, setDragPosX] = useState(0);
+    // start position of click and hold and moving the thumb with the pointer updates this
+    const startXRef = useRef(0);
 
-  const isControlled = checked !== undefined;
-  const derivedChecked = isControlled ? checked : isToggled;
+    // position of switch
+    const [switchRect, setSwitchRect] = useState<DOMRect | null>(null);
 
-  const handleCheckedChange = () => {
-    isControlled
-      ? onCheckedChange?.(!derivedChecked)
-      : setIsToggled(!derivedChecked);
-  };
+    const switchRef = useRef<HTMLButtonElement | null>(null);
+    const thumbRef = useRef<HTMLSpanElement | null>(null);
 
-  const resetHeld = () => {
-    setIsHeldDown(false);
-  };
+    // if props not passed for checked, its uncontrolled by dev
+    const isControlled = checked !== undefined;
+    const derivedChecked = isControlled ? checked : isToggled;
 
-  return (
-    <div
-      role="button"
-      onMouseLeave={resetHeld}
-      onMouseDown={() => setIsHeldDown(true)}
-      onMouseUp={resetHeld}
-      onClick={handleCheckedChange}
-      className={cn(
-        switchVariants({ variant, checked: derivedChecked }),
-        className,
-      )}
-    >
+    const getClamps = () => {
+      const swichEl = switchRef.current;
+      const thumbEl = thumbRef.current;
+      if (!swichEl || !thumbEl) return [0, 0];
+
+      const paddingOffset = parseFloat(getComputedStyle(swichEl).paddingLeft);
+      const minX = 0; // no translateX
+      const maxX =
+        swichEl.clientWidth - thumbEl.clientWidth - 2 * paddingOffset; // max left(edge of thumb) possible translateX
+      return [minX, maxX];
+    };
+
+    const getThumbLeft = (domRect?: DOMRect) => {
+      const thumbEl = thumbRef.current;
+      const localSwitchRect = domRect ?? switchRect;
+      if (!thumbEl || !localSwitchRect) return 0;
+      return thumbEl.getBoundingClientRect().left - localSwitchRect.left;
+    };
+
+    const handleCheckedChange = () => {
+      isControlled
+        ? onCheckedChange?.(!derivedChecked)
+        : setIsToggled(!derivedChecked);
+    };
+
+    const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+      const swichEl = switchRef.current;
+      const thumbEl = thumbRef.current;
+      if (!swichEl || !thumbEl) return;
+
+      setIsHeldDown(true);
+      e.currentTarget.setPointerCapture(e.pointerId);
+      const switchRect = swichEl.getBoundingClientRect();
+      startXRef.current = e.clientX;
+      setSwitchRect(switchRect);
+      const newPaddingOffset = parseFloat(
+        getComputedStyle(swichEl).paddingLeft,
+      );
+
+      const thumbLeft = getThumbLeft(switchRect); // passing local because its not updated yet in state by the time switchRect is accesssed inside the func
+      if (derivedChecked) {
+        setDragPosX(thumbLeft - newPaddingOffset);
+      } else {
+        setDragPosX(thumbLeft);
+      }
+    };
+
+    // posX is always w.r.t the container(switch) and not viewport
+    const handlePointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
+      const thumbEl = thumbRef.current;
+      if (!thumbEl || !isHeldDown || !switchRect) return;
+
+      const [min, max] = getClamps();
+
+      const localX = e.clientX - switchRect.left - getThumbLeft(); // x position w.r.t to the switch(container)
+      const clampedX = Math.max(min, Math.min(localX, max)); // either 0 or max or somewhere in between
+      setDragPosX(clampedX);
+    };
+
+    const handlePointerUp = (e: React.PointerEvent<HTMLButtonElement>) => {
+      if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }
+      setIsHeldDown(false);
+      const [_, max] = getClamps();
+
+      const isClick = Math.abs(e.clientX - startXRef.current) < 3;
+
+      if (!isClick) {
+        if (!derivedChecked && dragPosX > max / 2) {
+          handleCheckedChange();
+        } else if (derivedChecked && dragPosX < max / 2) {
+          handleCheckedChange();
+        }
+      } else {
+        handleCheckedChange();
+      }
+    };
+
+    const handlePointerCancel = (e: React.PointerEvent<HTMLButtonElement>) => {
+      if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }
+      setIsHeldDown(false);
+    };
+
+    // snap position to end or start on inital render when its controlled component
+    // using effect because we dont know the max yet to initialize in useState and
+    // when not heldDown and thumb is released in between
+    useEffect(() => {
+      if (isHeldDown) return;
+
+      const [min, max] = getClamps();
+
+      setDragPosX(derivedChecked ? max : min);
+    }, [isHeldDown, derivedChecked]);
+
+    return (
       <button
+        type="button"
+        role="switch"
+        aria-checked={derivedChecked}
+        ref={switchRef}
+        onPointerDown={handlePointerDown} // click/touch
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp} // release click/touch
+        onPointerCancel={handlePointerCancel} // unexpected interruptions or cancellations
         id="thumb"
-        onClick={handleCheckedChange}
         className={cn(
-          switchThumbVariants({
-            variant,
-            checked: derivedChecked,
-            held: isHeldDown,
-          }),
+          "touch-none",
+          switchVariants({ variant, checked: derivedChecked }),
+          className,
         )}
-      />
-    </div>
-  );
-};
+      >
+        <span
+          ref={thumbRef}
+          className={cn(
+            switchThumbVariants({
+              variant,
+              held: isHeldDown,
+            }),
+          )}
+          style={{ transform: `translateX(${dragPosX}px)` }}
+        />
+      </button>
+    );
+  },
+);
+
+Switch.displayName = "Switch";
