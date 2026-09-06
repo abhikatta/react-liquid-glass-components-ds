@@ -115,16 +115,10 @@ export const Switch = memo(
       const switchRect = swichEl.getBoundingClientRect();
       startXRef.current = e.clientX;
       setSwitchRect(switchRect);
-      const newPaddingOffset = parseFloat(
-        getComputedStyle(swichEl).paddingLeft,
-      );
-
+      const paddingOffset = parseFloat(getComputedStyle(swichEl).paddingLeft);
       const thumbLeft = getThumbLeft(switchRect); // passing local because its not updated yet in state by the time switchRect is accesssed inside the func
-      if (derivedChecked) {
-        setDragPosX(thumbLeft - newPaddingOffset);
-      } else {
-        setDragPosX(thumbLeft);
-      }
+
+      setDragPosX(thumbLeft - (derivedChecked ? 2 : 1) * paddingOffset);
     };
 
     // posX is always w.r.t the container(switch) and not viewport
