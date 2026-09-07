@@ -26,14 +26,13 @@ const switchThumbVariants = cva(
   {
     variants: {
       variant: {
-        sm: "h-4 w-6 [--padding:0.125rem] [--scale-x:160%] [--scale-y:170%] [--switch-width:2.75rem] [--thumb-width:1.5rem]",
-        md: "h-8 w-12 [--padding:0.125rem] [--scale-x:150%] [--scale-y:170%] [--switch-width:5rem] [--thumb-width:3rem]",
-        lg: "h-10.5 w-17 [--padding:0.1875rem] [--scale-x:150%] [--scale-y:170%] [--switch-width:7rem] [--thumb-width:4.25rem]",
-        default:
-          "h-6 w-9 [--padding:0.125rem] [--scale-x:150%] [--scale-y:160%] [--switch-width:3.75rem] [--thumb-width:2.25rem]",
+        sm: "h-4 w-6 [--scale-x:160%] [--scale-y:170%]",
+        md: "h-8 w-12 [--scale-x:150%] [--scale-y:170%]",
+        lg: "h-10.5 w-17 [--scale-x:150%] [--scale-y:170%]",
+        default: "h-6 w-9 [--scale-x:150%] [--scale-y:160%]",
       },
       held: {
-        true: "scale-x-[var(--scale-x)] scale-y-[var(--scale-y)] opacity-45 drop-shadow-xl focus:outline-none",
+        true: "scale-x-[var(--scale-x)] scale-y-[var(--scale-y)] opacity-85 blur-[0.35px] drop-shadow-xl focus:outline-none",
         false: "scale-100",
       },
     },
