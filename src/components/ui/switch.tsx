@@ -22,7 +22,7 @@ const switchVariants = cva("flex items-center rounded-full transition-colors", {
 });
 
 const switchThumbVariants = cva(
-  "rounded-full bg-white transition-all duration-300 ease-out focus-visible:border-none focus-visible:outline-1",
+  "rounded-full transition-all duration-300 ease-out focus-visible:border-none focus-visible:outline-none",
   {
     variants: {
       variant: {
@@ -32,8 +32,8 @@ const switchThumbVariants = cva(
         default: "h-6 w-9 [--scale-x:150%] [--scale-y:160%]",
       },
       held: {
-        true: "scale-x-[var(--scale-x)] scale-y-[var(--scale-y)] opacity-85 blur-[0.35px] drop-shadow-xl focus:outline-none",
-        false: "scale-100",
+        true: "scale-x-[var(--scale-x)] scale-y-[var(--scale-y)] border-[0.25px] border-gray-50 bg-white/40 backdrop-blur-[1px] backdrop-saturate-150 focus:outline-none",
+        false: "scale-100 border-none bg-white",
       },
     },
     defaultVariants: {
